@@ -1,7 +1,13 @@
 const STORAGE_KEY = "opsforms_passagem_servico_supervisao_v1";
 const HEADER_KEY = "opsforms_passagem_servico_supervisao_header_v1";
 
-const SUPERVISORES = ["Antônio Marcos", "Osmar Silva"];
+const SUPERVISORES = ["Antônio Marcos", "Osmar Silva", "Diego Praxedes", "Ediclaudio Cunha"];
+const BACK_TO_BACK = {
+  "Antônio Marcos": "Osmar Silva",
+  "Osmar Silva": "Antônio Marcos",
+  "Diego Praxedes": "Ediclaudio Cunha",
+  "Ediclaudio Cunha": "Diego Praxedes"
+};
 
 const simpleIds = [
   "sonda", "periodoInicio", "periodoFim", "supervisorSaindo", "supervisorEntrando",
@@ -65,7 +71,7 @@ function makeEmptyCountTable() {
 
 function counterpart(name) {
   if (!name) return "";
-  return SUPERVISORES.find(supervisor => supervisor !== name) || "";
+  return BACK_TO_BACK[name] || "";
 }
 
 function syncSupervisor(sourceId) {
