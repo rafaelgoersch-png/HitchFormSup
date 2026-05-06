@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Passagem de Serviço — Supervisão de Sonda</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Passagem de Serviço — Supervisão de Sonda</h1>
+        <p>Formulário isolado para gerar texto formatado de handover para WhatsApp ou Teams.</p>
+      </div>
+      <div class="top-actions">
+        <button class="btn" id="saveDraftBtn" type="button">Salvar rascunho</button>
+        <button class="btn" id="exportDraftBtn" type="button">Exportar rascunho</button>
+        <button class="btn" id="importDraftBtn" type="button">Importar rascunho</button>
+        <input type="file" id="importDraftInput" accept=".json,application/json" hidden />
+        <button class="btn" id="clearHeaderBtn" type="button">Limpar cabeçalho</button>
+        <button class="btn" id="clearDataBtn" type="button">Limpar dados</button>
+        <button class="btn danger" id="clearAllBtn" type="button">Limpar tudo</button>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <form class="form-panel" id="handoverForm" autocomplete="off">
+        <section class="card">
+          <div class="card-title-row">
+            <h2>Identificação</h2>
+            <span class="section-badge">Cabeçalho</span>
+          </div>
+          <div class="grid three">
+            <label>Sonda
+              <input id="sonda" data-header type="text" placeholder="Ex: PR-14" />
+            </label>
+            <label>Início do período
+              <input id="periodoInicio" data-header type="date" />
+            </label>
+            <label>Fim do período
+              <input id="periodoFim" data-header type="date" />
+            </label>
+          </div>
+          <div class="grid" style="margin-top:14px;">
+            <label>Supervisor saindo
+              <select id="supervisorSaindo" data-header>
+                <option value="">Selecione</option>
+                <option value="Antônio Marcos">Antônio Marcos</option>
+                <option value="Osmar Silva">Osmar Silva</option>
+              </select>
+            </label>
+            <label>Supervisor entrando
+              <select id="supervisorEntrando" data-header>
+                <option value="">Selecione</option>
+                <option value="Antônio Marcos">Antônio Marcos</option>
+                <option value="Osmar Silva">Osmar Silva</option>
+              </select>
+            </label>
+          </div>
+          <p class="hint">Situação back-to-back: ao escolher um supervisor, o outro é preenchido automaticamente.</p>
+          <p class="status-line" id="draftStatus">Rascunho local pronto.</p>
+        </section>
+
+        <section class="card">
+          <div class="card-title-row">
+            <h2>1. Segurança</h2>
+            <span class="section-badge">SMS</span>
+          </div>
+          <div class="grid one">
+            <label>Desvios recentes — últimos 7 dias
+              <textarea id="desviosRecentes" placeholder="Resumo dos desvios recentes"></textarea>
+            </label>
+            <label>Caça-desvios críticos em aberto
+              <textarea id="cacaDesviosCriticos" placeholder="Descrever caça-desvios críticos ainda abertos"></textarea>
+            </label>
+            <label>Incidentes / quase-acidentes
+              <textarea id="incidentesQuaseAcidentes" placeholder="Relatar incidentes ou quase-acidentes"></textarea>
+            </label>
+            <label>Riscos principais atuais da operação
+              <textarea id="riscosPrincipais" placeholder="Ex: caça-desvio aberto com ação mitigadora ativa"></textarea>
+            </label>
+            <label>Ações de mitigação implementadas
+              <textarea id="acoesMitigacao" placeholder="Ações mitigadoras ativas"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title-row">
+            <h2>2. Equipamentos da Sonda</h2>
+            <span class="section-badge">Equipamentos</span>
+          </div>
+          <div class="grid one">
+            <label>Status geral da sonda
+              <input id="statusGeralSonda" type="text" placeholder="Operacional / restrição / parada" />
+            </label>
+          </div>
+          <h3>Equipamentos críticos</h3>
+          <div class="grid two">
+            <label>Top Drive
+              <input id="topDrive" type="text" placeholder="Operacional / restrição / parada" />
+            </label>
+            <label>Bombas de lama
+              <input id="bombasLama" type="text" placeholder="Operacional / restrição / parada" />
+            </label>
+            <label>BOP
+              <input id="bop" type="text" placeholder="Operacional / restrição / parada" />
+            </label>
+            <label>Sistema de sólidos
+              <input id="sistemaSolidos" type="text" placeholder="Operacional / restrição / parada" />
+            </label>
+            <label>Geradores
+              <input id="geradores" type="text" placeholder="Operacional / restrição / parada" />
+            </label>
+          </div>
+          <div class="grid one" style="margin-top:14px;">
+            <label>Falhas ou restrições em andamento
+              <textarea id="falhasRestricoes" placeholder="Falhas, restrições, troubleshooting em curso"></textarea>
+            </label>
+          </div>
+
+          <div class="subsection-title-row spaced">
+            <h3>Manutenções programadas — próximos dias</h3>
+            <button class="btn small" id="addManutencaoBtn" type="button">+ Adicionar manutenção</button>
+          </div>
+          <div class="item-list" id="manutencoesList"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title-row">
+            <h2>3. Pessoas e Liderança</h2>
+            <span class="section-badge">Equipe</span>
+          </div>
+          <h3>Pontos de atenção com equipe — acompanhamento PRONTOS</h3>
+          <div class="grid one">
+            <label>Comportamento
+              <textarea id="comportamento" placeholder="Pontos de atenção de comportamento"></textarea>
+            </label>
+            <label>Segurança
+              <textarea id="segurancaEquipe" placeholder="Pontos de atenção de segurança"></textarea>
+            </label>
+            <label>Treinamento
+              <textarea id="treinamento" placeholder="Necessidades de treinamento ou reciclagem"></textarea>
+            </label>
+            <label>Trocas de equipe previstas
+              <textarea id="trocasEquipe" placeholder="Trocas previstas, impactos e atenção necessária"></textarea>
+            </label>
+            <label>Clima operacional — avaliação do supervisor
+              <textarea id="climaOperacional" placeholder="Percepção objetiva do clima operacional"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title-row">
+            <h2>4. Logística e Materiais</h2>
+            <span class="section-badge">Logística</span>
+          </div>
+          <div class="grid one">
+            <label>Materiais críticos em falta ou próximos do limite
+              <textarea id="materiaisFalta" placeholder="Materiais em falta ou próximos do limite operacional"></textarea>
+            </label>
+            <label>Serviços em andamento
+              <textarea id="servicosAndamento" placeholder="Serviços em andamento no site"></textarea>
+            </label>
+            <label>Serviços programados
+              <textarea id="servicosProgramados" placeholder="Serviços previstos/programados"></textarea>
+            </label>
+            <label>Pendências logísticas
+              <textarea id="pendenciasLogisticas" placeholder="Pendências de logística, transporte, materiais ou liberação"></textarea>
+            </label>
+          </div>
+
+          <div class="subsection-title-row spaced">
+            <h3>4.1 Materiais Recebidos</h3>
+            <button class="btn small" id="addMaterialRecebidoBtn" type="button">+ Adicionar material</button>
+          </div>
+          <div class="material-list" id="materiaisRecebidosList"></div>
+
+          <div class="subsection-title-row spaced">
+            <h3>4.2 Materiais Enviados</h3>
+            <button class="btn small" id="addMaterialEnviadoBtn" type="button">+ Adicionar material</button>
+          </div>
+          <div class="material-list" id="materiaisEnviadosList"></div>
+
+          <div class="subsection-title-row spaced">
+            <h3>4.3 Solicitação de Materiais</h3>
+            <button class="btn small" id="addSolicitacaoMaterialBtn" type="button">+ Adicionar solicitação</button>
+          </div>
+          <div class="material-list" id="solicitacoesMateriaisList"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title-row">
+            <h2>5. Serviços Pendentes</h2>
+            <span class="section-badge">Serviços</span>
+          </div>
+          <div class="subsection-title-row">
+            <h3>Lista de serviços pendentes</h3>
+            <button class="btn small" id="addServicoPendenteBtn" type="button">+ Adicionar serviço</button>
+          </div>
+          <div class="item-list" id="servicosPendentesList"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title-row">
+            <h2>6. Contagem de Coluna da Sonda</h2>
+            <span class="section-badge">Coluna</span>
+          </div>
+          <p class="hint table-hint">Preencha números ou observações curtas. A linha Total pode ser preenchida manualmente.</p>
+          <div class="table-wrap">
+            <table class="count-table" id="countTable">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Drill pipes</th>
+                  <th>Heavy weight</th>
+                  <th>DCs 6 3/4&quot;</th>
+                  <th>DCs 8&quot;</th>
+                  <th><input id="colunaLivreTitulo" type="text" placeholder="coluna livre" /></th>
+                </tr>
+              </thead>
+              <tbody id="countTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title-row">
+            <h2>7. Outros Assuntos Relevantes</h2>
+            <span class="section-badge">Livre</span>
+          </div>
+          <div class="subsection-title-row">
+            <h3>Informações relevantes não cobertas acima</h3>
+            <button class="btn small" id="addOutroAssuntoBtn" type="button">+ Adicionar assunto</button>
+          </div>
+          <div class="item-list" id="outrosAssuntosList"></div>
+        </section>
+      </form>
+
+      <aside class="card preview-panel">
+        <div class="preview-header">
+          <div>
+            <h2>Texto gerado</h2>
+            <p>Copie para WhatsApp ou Teams. Use o botão específico do Teams para manter negrito.</p>
+          </div>
+          <span class="section-badge">Preview</span>
+        </div>
+        <div class="preview-box" id="previewText"></div>
+        <div class="preview-footer">
+          <div class="status" id="copyStatus"></div>
+          <div class="top-actions">
+            <button class="btn" id="copyBtn" type="button">Copiar texto</button>
+            <button class="btn" id="copyTeamsBtn" type="button">Copiar para Teams</button>
+            <button class="btn primary" id="copyWhatsappBtn" type="button">Copiar texto e abrir WhatsApp</button>
+          </div>
+        </div>
+        <p class="hint">O envio segue manual: escolha o grupo no WhatsApp/Teams e cole o texto.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
