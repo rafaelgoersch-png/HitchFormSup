@@ -74,11 +74,51 @@ function counterpart(name) {
   return BACK_TO_BACK[name] || "";
 }
 
+function buildSupervisorOptions(selectId, selectedValue = "", excludedValue = "") {
+  const select = el(selectId);
+  if (!select) return;
+
+  select.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Selecione";
+  select.appendChild(placeholder);
+
+  SUPERVISORES
+    .filter(nome => nome !== excludedValue)
+    .forEach(nome => {
+      const option = document.createElement("option");
+      option.value = nome;
+      option.textContent = nome;
+      select.appendChild(option);
+    });
+
+  select.value = selectedValue && selectedValue !== excludedValue ? selectedValue : "";
+}
+
+function refreshSupervisorPicklists() {
+  const saindo = val("supervisorSaindo");
+  const entrando = val("supervisorEntrando");
+  buildSupervisorOptions("supervisorSaindo", saindo, entrando);
+  buildSupervisorOptions("supervisorEntrando", entrando, saindo);
+}
+
 function syncSupervisor(sourceId) {
   if (syncingSupervisor) return;
   syncingSupervisor = true;
+
+  const sourceValue = val(sourceId);
   const targetId = sourceId === "supervisorSaindo" ? "supervisorEntrando" : "supervisorSaindo";
-  el(targetId).value = counterpart(el(sourceId).value);
+  const targetValue = counterpart(sourceValue);
+
+  if (sourceValue && targetValue) {
+    el(targetId).value = targetValue;
+  } else if (!sourceValue) {
+    el(targetId).value = "";
+  }
+
+  refreshSupervisorPicklists();
   syncingSupervisor = false;
 }
 
@@ -152,6 +192,11 @@ function normalizedCountTable(saved) {
 
 function setState(savedState) {
   setSimpleState(savedState || {});
+
+  if (val("supervisorEntrando") && !val("supervisorSaindo")) syncSupervisor("supervisorEntrando");
+  else if (val("supervisorSaindo") && !val("supervisorEntrando")) syncSupervisor("supervisorSaindo");
+  else refreshSupervisorPicklists();
+
   Object.keys(dynamicLists).forEach(listName => {
     state[listName] = normalizedList(listName, savedState?.[listName]);
   });
@@ -183,6 +228,9 @@ function loadState() {
   if (header) {
     try { setSimpleState(JSON.parse(header)); } catch (e) {}
   }
+  if (val("supervisorEntrando") && !val("supervisorSaindo")) syncSupervisor("supervisorEntrando");
+  else if (val("supervisorSaindo") && !val("supervisorEntrando")) syncSupervisor("supervisorSaindo");
+  else refreshSupervisorPicklists();
   renderAllDynamic();
   setDraftStatus("Novo rascunho iniciado.");
 }
@@ -499,6 +547,7 @@ async function copyTeamsText() {
 
 function clearHeader() {
   simpleIds.filter(id => el(id).hasAttribute("data-header")).forEach(id => el(id).value = "");
+  refreshSupervisorPicklists();
   updatePreview();
 }
 
@@ -521,6 +570,7 @@ function clearAll() {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(HEADER_KEY);
   simpleIds.forEach(id => el(id).value = "");
+  refreshSupervisorPicklists();
   clearData();
   setDraftStatus("Rascunho apagado.");
 }
@@ -606,5 +656,6 @@ el("clearHeaderBtn").addEventListener("click", clearHeader);
 el("clearDataBtn").addEventListener("click", clearData);
 el("clearAllBtn").addEventListener("click", clearAll);
 
+refreshSupervisorPicklists();
 loadState();
 updatePreview(false);
