@@ -19,14 +19,19 @@ const simpleIds = [
 ];
 
 const countRows = ["Poço", "Torre", "Caixas", "Cavaletes", "Inspecionar", "Reprovados", "Sucata", "Total"];
-const countCols = ["drillPipes", "heavyWeight", "dcs634", "dcs8", "livre"];
 const countColLabels = {
   drillPipes: "Drill pipes",
   heavyWeight: "Heavy weight",
+  hw5: 'HW 5"',
+  hw412: 'HW 4.1/2"',
+  hw4: 'HW 4"',
   dcs634: 'DCs 6 3/4"',
+  dcs614: 'DC 6.1/4"',
   dcs8: 'DCs 8"',
+  dcs434: 'DC 4.3/4"',
   livre: "coluna livre"
 };
+const countCols = Object.keys(countColLabels);
 
 const dynamicLists = {
   manutencoes: { containerId: "manutencoesList", minItems: 1, makeItem: () => ({ texto: "" }) },
@@ -55,6 +60,7 @@ const draftStatus = document.getElementById("draftStatus");
 let syncingSupervisor = false;
 let renderingLists = false;
 let saveTimer = null;
+let copying = false;
 
 function el(id) { return document.getElementById(id); }
 function val(id) { return (el(id)?.value || "").trim(); }
@@ -184,7 +190,7 @@ function normalizedCountTable(saved) {
   if (!saved || typeof saved !== "object") return base;
   countRows.forEach(row => {
     countCols.forEach(col => {
-      base[row][col] = saved?.[row]?.[col] ?? "";
+      base[row][col] = String(saved?.[row]?.[col] ?? "");
     });
   });
   return base;
@@ -326,13 +332,24 @@ function renderDynamicLists() {
   renderingLists = false;
 }
 
+function renderCountHeadings() {
+  const headingRow = el("countTableHead");
+  const freeHeading = el("colunaLivreTitulo").closest("th");
+  countCols.filter(col => col !== "livre").forEach(col => {
+    const heading = document.createElement("th");
+    heading.scope = "col";
+    heading.textContent = countColLabels[col];
+    headingRow.insertBefore(heading, freeHeading);
+  });
+}
+
 function renderCountTable() {
   const tbody = el("countTableBody");
   tbody.innerHTML = countRows.map(row => `
     <tr data-row="${row}">
-      <td>${row}</td>
+      <th scope="row">${row}</th>
       ${countCols.map(col => `
-        <td><input data-count-row="${row}" data-count-col="${col}" type="text" value="${escapeHtml(state.countTable[row]?.[col] || "")}" /></td>
+        <td><input data-count-row="${row}" data-count-col="${col}" type="text" aria-label="${escapeHtml(row + ' — ' + countColLabels[col])}" value="${escapeHtml(state.countTable[row]?.[col] ?? "")}" /></td>
       `).join("")}
     </tr>
   `).join("");
@@ -394,18 +411,19 @@ function buildCountOutput() {
 
   countRows.forEach(row => {
     const filled = countCols
-      .map(col => [labels[col], (state.countTable[row]?.[col] || "").trim()])
+      .map(col => [labels[col], String(state.countTable[row]?.[col] ?? "").trim()])
       .filter(([, value]) => value);
     if (filled.length) {
       lines.push(`• ${row}: ${filled.map(([label, value]) => `${label}: ${value}`).join(" | ")}`);
     }
   });
 
-  return lines.length ? lines.join("\n") : "• -";
+  return lines.join("\n");
 }
 
 function buildOutput() {
   const periodo = `${formatDate(val("periodoInicio"))} a ${formatDate(val("periodoFim"))}`;
+  const countOutput = buildCountOutput();
 
   return [
     "*PASSAGEM DE SERVIÇO - SUPERVISÃO DE SONDA*",
@@ -462,26 +480,26 @@ function buildOutput() {
     "*5. Serviços Pendentes*",
     bulletLines(state.servicosPendentes, textItemLine),
     "",
-    "*6. Contagem de Coluna da Sonda*",
-    buildCountOutput(),
-    "",
+    ...(countOutput ? ["*6. Contagem de Coluna da Sonda*", countOutput, ""] : []),
     "*7. Outros Assuntos Relevantes*",
     bulletLines(state.outrosAssuntos, textItemLine)
   ].join("\n");
 }
 
 function updatePreview(shouldSave = true) {
-  previewText.textContent = buildOutput();
-  copyStatus.textContent = "";
+  const text = buildOutput();
+  if (previewText.textContent !== text) setCopyStatus("");
+  previewText.textContent = text;
+  el("whatsappLink").href = `https://wa.me/?text=${encodeURIComponent(text)}`;
   if (shouldSave) scheduleSave();
 }
 
-function buildTeamsPlainText() {
-  return buildOutput().replace(/^\*(.+)\*$/gm, "$1");
+function buildTeamsPlainText(text) {
+  return text.replace(/^\*(.+)\*$/gm, "$1");
 }
 
-function buildTeamsHtml() {
-  const lines = buildOutput().split("\n");
+function buildTeamsHtml(text) {
+  const lines = text.split("\n");
   const htmlLines = lines.map(rawLine => {
     const lineText = rawLine.replace(/^\*(.+)\*$/, "$1");
     const escaped = escapeHtml(lineText);
@@ -496,52 +514,86 @@ function buildTeamsHtml() {
   return `<!doctype html><html><body>${htmlLines.join("")}</body></html>`;
 }
 
-async function writePlainTextToClipboard(text) {
+function setCopyStatus(message, isError = false) {
+  copyStatus.textContent = message;
+  copyStatus.dataset.error = String(isError);
+}
+
+function copyLegacy(text) {
+  const previousFocus = document.activeElement;
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.readOnly = true;
+  field.style.position = "fixed";
+  field.style.left = "-9999px";
+  document.body.appendChild(field);
+  try {
+    field.select();
+    field.setSelectionRange(0, text.length);
+    return document.execCommand("copy") === true;
+  } catch {
+    return false;
+  } finally {
+    field.remove();
+    previousFocus?.focus({ preventScroll: true });
+  }
+}
+
+async function copyPlain(text, snapshot) {
   try {
     await navigator.clipboard.writeText(text);
-  } catch (error) {
-    const temp = document.createElement("textarea");
-    temp.value = text;
-    temp.style.position = "fixed";
-    temp.style.left = "-9999px";
-    document.body.appendChild(temp);
-    temp.focus();
-    temp.select();
-    document.execCommand("copy");
-    document.body.removeChild(temp);
+    return true;
+  } catch {
+    return previewText.textContent === snapshot && copyLegacy(text);
   }
 }
 
-async function copyText(openWhatsapp = false) {
-  const text = buildOutput();
-  try {
-    await writePlainTextToClipboard(text);
-    copyStatus.textContent = openWhatsapp ? "Texto copiado. Abrindo WhatsApp..." : "Texto copiado.";
-    if (openWhatsapp) window.open("https://web.whatsapp.com/", "_blank", "noopener,noreferrer");
-  } catch (error) {
-    copyStatus.textContent = "Não consegui copiar automaticamente. Selecione o texto do preview e copie manualmente.";
-  }
+function selectPreviewText() {
+  previewText.focus();
+  const range = document.createRange();
+  range.selectNodeContents(previewText);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
-async function copyTeamsText() {
-  const html = buildTeamsHtml();
-  const plainText = buildTeamsPlainText();
-
+async function copyReport(forTeams) {
+  if (copying) return;
+  copying = true;
+  const snapshot = previewText.textContent;
+  const buttons = [el("copyBtn"), el("copyTeamsBtn")];
+  buttons.forEach(button => { button.disabled = true; });
+  setCopyStatus("Copiando texto…");
+  let rich = false;
+  let copied = false;
   try {
-    if (window.ClipboardItem && navigator.clipboard?.write) {
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          "text/html": new Blob([html], { type: "text/html" }),
-          "text/plain": new Blob([plainText], { type: "text/plain" })
-        })
-      ]);
-    } else {
-      await writePlainTextToClipboard(plainText);
+    const plain = forTeams ? buildTeamsPlainText(snapshot) : snapshot;
+    if (forTeams && window.ClipboardItem && navigator.clipboard?.write) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/html": new Blob([buildTeamsHtml(snapshot)], { type: "text/html" }),
+          "text/plain": new Blob([plain], { type: "text/plain" })
+        })]);
+        rich = true;
+        copied = true;
+      } catch {
+        // The browser may support plain text even if it refuses formatted clipboard data.
+      }
     }
-    copyStatus.textContent = "Texto copiado para Teams com negrito.";
-  } catch (error) {
-    await writePlainTextToClipboard(plainText);
-    copyStatus.textContent = "Texto copiado para Teams sem asteriscos. Se o negrito não vier, cole no Teams e ajuste os títulos.";
+    if (!copied && previewText.textContent === snapshot) copied = await copyPlain(plain, snapshot);
+    if (previewText.textContent !== snapshot) {
+      setCopyStatus("O texto mudou durante a cópia. Copie novamente antes de colar.", true);
+    } else if (copied) {
+      setCopyStatus(rich ? "Texto copiado para Teams com negrito." : forTeams
+        ? "Texto copiado para Teams sem formatação."
+        : "Texto copiado.");
+    } else {
+      selectPreviewText();
+      setCopyStatus("A cópia automática não foi possível. O texto da prévia está selecionado para copiar manualmente.", true);
+    }
+  } finally {
+    copying = false;
+    buttons.forEach(button => { button.disabled = false; });
   }
 }
 
@@ -645,9 +697,8 @@ el("addSolicitacaoMaterialBtn").addEventListener("click", () => addListItem("sol
 el("addServicoPendenteBtn").addEventListener("click", () => addListItem("servicosPendentes"));
 el("addOutroAssuntoBtn").addEventListener("click", () => addListItem("outrosAssuntos"));
 
-el("copyBtn").addEventListener("click", () => copyText(false));
-el("copyTeamsBtn").addEventListener("click", copyTeamsText);
-el("copyWhatsappBtn").addEventListener("click", () => copyText(true));
+el("copyBtn").addEventListener("click", () => copyReport(false));
+el("copyTeamsBtn").addEventListener("click", () => copyReport(true));
 el("saveDraftBtn").addEventListener("click", () => saveState(true));
 el("exportDraftBtn").addEventListener("click", exportDraft);
 el("importDraftBtn").addEventListener("click", () => el("importDraftInput").click());
@@ -656,6 +707,7 @@ el("clearHeaderBtn").addEventListener("click", clearHeader);
 el("clearDataBtn").addEventListener("click", clearData);
 el("clearAllBtn").addEventListener("click", clearAll);
 
+renderCountHeadings();
 refreshSupervisorPicklists();
 loadState();
 updatePreview(false);

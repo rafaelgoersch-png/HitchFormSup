@@ -11,7 +11,11 @@
     <header class="topbar">
       <div>
         <h1>Passagem de Serviço — Supervisão de Sonda</h1>
-        <p>Formulário isolado para gerar texto formatado de handover para WhatsApp ou Teams.</p>
+        <p>Preencha a passagem de serviço e revise o texto antes de copiar ou abrir o WhatsApp.</p>
+        <nav class="quick-nav" aria-label="Atalhos do formulário">
+          <a href="#countSection">Contagem de coluna</a>
+          <a href="#reportPreview">Revisar e exportar</a>
+        </nav>
       </div>
       <div class="top-actions">
         <button class="btn" id="saveDraftBtn" type="button">Salvar rascunho</button>
@@ -26,7 +30,7 @@
 
     <section class="workspace">
       <form class="form-panel" id="handoverForm" autocomplete="off">
-        <section class="card">
+        <section class="card" id="identificacao">
           <div class="card-title-row">
             <h2>Identificação</h2>
             <span class="section-badge">Cabeçalho</span>
@@ -199,27 +203,24 @@
           <div class="item-list" id="servicosPendentesList"></div>
         </section>
 
-        <section class="card">
+        <section class="card" id="countSection">
           <div class="card-title-row">
-            <h2>6. Contagem de Coluna da Sonda</h2>
+            <h2 id="countTitle">6. Contagem de Coluna da Sonda</h2>
             <span class="section-badge">Coluna</span>
           </div>
-          <p class="hint table-hint">Preencha números ou observações curtas. A linha Total pode ser preenchida manualmente.</p>
-          <div class="table-wrap">
+          <p class="hint table-hint" id="countHelp">Só números ou observações preenchidos entram no texto, inclusive zero. O Total é manual. Deslize a tabela para ver todas as ferramentas.</p>
+          <div class="table-wrap" tabindex="0" role="region" aria-labelledby="countTitle" aria-describedby="countHelp">
             <table class="count-table" id="countTable">
               <thead>
-                <tr>
-                  <th></th>
-                  <th>Drill pipes</th>
-                  <th>Heavy weight</th>
-                  <th>DCs 6 3/4&quot;</th>
-                  <th>DCs 8&quot;</th>
-                  <th><input id="colunaLivreTitulo" type="text" placeholder="coluna livre" /></th>
+                <tr id="countTableHead">
+                  <th scope="col">Local / condição</th>
+                  <th scope="col"><input id="colunaLivreTitulo" type="text" placeholder="coluna livre" aria-label="Nome da coluna livre" /></th>
                 </tr>
               </thead>
               <tbody id="countTableBody"></tbody>
             </table>
           </div>
+          <p class="hint"><a class="text-link" href="#reportPreview">Ver texto da passagem</a></p>
         </section>
 
         <section class="card">
@@ -235,24 +236,19 @@
         </section>
       </form>
 
-      <aside class="card preview-panel">
+      <aside class="card preview-panel" id="reportPreview" aria-labelledby="previewTitle">
         <div class="preview-header">
-          <div>
-            <h2>Texto gerado</h2>
-            <p>Copie para WhatsApp ou Teams. Use o botão específico do Teams para manter negrito.</p>
-          </div>
-          <span class="section-badge">Preview</span>
+          <h2 id="previewTitle">Texto gerado</h2>
+          <a class="text-link" href="#identificacao">Voltar ao formulário</a>
         </div>
-        <div class="preview-box" id="previewText"></div>
-        <div class="preview-footer">
-          <div class="status" id="copyStatus"></div>
-          <div class="top-actions">
-            <button class="btn" id="copyBtn" type="button">Copiar texto</button>
-            <button class="btn" id="copyTeamsBtn" type="button">Copiar para Teams</button>
-            <button class="btn primary" id="copyWhatsappBtn" type="button">Copiar texto e abrir WhatsApp</button>
-          </div>
+        <div class="report-actions" aria-label="Exportar texto">
+          <button class="btn primary" id="copyBtn" type="button">Copiar texto</button>
+          <button class="btn" id="copyTeamsBtn" type="button">Copiar para Teams</button>
+          <a class="btn" id="whatsappLink" target="_blank" rel="noopener noreferrer" aria-describedby="exportHelp">Abrir WhatsApp</a>
         </div>
-        <p class="hint">O envio segue manual: escolha o grupo no WhatsApp/Teams e cole o texto.</p>
+        <p class="hint" id="exportHelp">O WhatsApp abre com o texto preenchido para você escolher a conversa e confirmar o envio. Se não abrir ou não receber um texto longo, copie e cole manualmente. No Teams, use o botão próprio para preservar os títulos em negrito quando disponível.</p>
+        <div class="status copy-status" id="copyStatus" role="status"></div>
+        <div class="preview-box" id="previewText" tabindex="0" aria-label="Prévia do texto da passagem"></div>
       </aside>
     </section>
   </main>
