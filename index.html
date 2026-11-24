@@ -220,6 +220,12 @@
               <tbody id="countTableBody"></tbody>
             </table>
           </div>
+          <section id="legacyHw" class="legacy-hw" aria-labelledby="legacyHwTitle" hidden>
+            <h3 id="legacyHwTitle">HW de rascunho antigo sem bitola</h3>
+            <p class="hint">Os valores abaixo continuam salvos, mas só entram no texto depois que você escolher a bitola.</p>
+            <div id="legacyHwList"></div>
+          </section>
+          <p id="legacyHwFeedback" class="hint" role="status"></p>
           <p class="hint"><a class="text-link" href="#reportPreview">Ver texto da passagem</a></p>
         </section>
 
@@ -247,6 +253,7 @@
           <a class="btn" id="whatsappLink" target="_blank" rel="noopener noreferrer" aria-describedby="exportHelp">Abrir WhatsApp</a>
         </div>
         <p class="hint" id="exportHelp">O WhatsApp abre com o texto preenchido para você escolher a conversa e confirmar o envio. Se não abrir ou não receber um texto longo, copie e cole manualmente. No Teams, use o botão próprio para preservar os títulos em negrito quando disponível.</p>
+        <p id="legacyHwExportNotice" class="hint" hidden><a class="text-link" href="#legacyHw">Revisar HW sem bitola</a>: há valores antigos salvos que ainda não entram no texto.</p>
         <div class="status copy-status" id="copyStatus" role="status"></div>
         <div class="preview-box" id="previewText" tabindex="0" aria-label="Prévia do texto da passagem"></div>
       </aside>

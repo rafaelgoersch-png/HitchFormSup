@@ -21,17 +21,18 @@ const simpleIds = [
 const countRows = ["Poço", "Torre", "Caixas", "Cavaletes", "Inspecionar", "Reprovados", "Sucata", "Total"];
 const countColLabels = {
   drillPipes: "Drill pipes",
-  heavyWeight: "Heavy weight",
   hw5: 'HW 5"',
   hw412: 'HW 4.1/2"',
   hw4: 'HW 4"',
+  dcs8: 'DCs 8"',
   dcs634: 'DCs 6 3/4"',
   dcs614: 'DC 6.1/4"',
-  dcs8: 'DCs 8"',
   dcs434: 'DC 4.3/4"',
   livre: "coluna livre"
 };
 const countCols = Object.keys(countColLabels);
+const hwCols = countCols.filter(col => col.startsWith("hw"));
+const legacyHwKey = "heavyWeight";
 
 const dynamicLists = {
   manutencoes: { containerId: "manutencoesList", minItems: 1, makeItem: () => ({ texto: "" }) },
@@ -192,6 +193,9 @@ function normalizedCountTable(saved) {
     countCols.forEach(col => {
       base[row][col] = String(saved?.[row]?.[col] ?? "");
     });
+    // Preserve a saved value without assigning it to an unverified diameter.
+    const legacyValue = String(saved?.[row]?.[legacyHwKey] ?? "");
+    if (legacyValue.trim()) base[row][legacyHwKey] = legacyValue;
   });
   return base;
 }
@@ -355,9 +359,55 @@ function renderCountTable() {
   `).join("");
 }
 
+function renderLegacyHw() {
+  const rows = countRows.filter(row => state.countTable[row][legacyHwKey]?.trim());
+  el("legacyHw").hidden = rows.length === 0;
+  el("legacyHwExportNotice").hidden = rows.length === 0;
+  el("legacyHwList").innerHTML = rows.map(row => `
+    <div class="legacy-hw-entry">
+      <p><strong>${row}:</strong> <span class="legacy-hw-value">${escapeHtml(state.countTable[row][legacyHwKey])}</span></p>
+      <label>Bitola HW · ${row}
+        <select>
+          <option value="">Selecione a bitola</option>
+          ${hwCols.map(col => `<option value="${col}">${escapeHtml(countColLabels[col])}</option>`).join("")}
+        </select>
+      </label>
+      <button class="btn small" type="button" data-reassign-hw="${row}">Mover valor</button>
+    </div>
+  `).join("");
+}
+
+function reassignLegacyHw(button) {
+  const row = button.dataset.reassignHw;
+  const col = button.closest(".legacy-hw-entry").querySelector("select").value;
+  const cells = countRows.includes(row) ? state.countTable[row] : null;
+  const feedback = el("legacyHwFeedback");
+  if (!cells?.[legacyHwKey]?.trim()) return;
+  if (!hwCols.includes(col)) {
+    feedback.textContent = "Selecione a bitola do valor antigo antes de mover.";
+    return;
+  }
+  if (cells[col].trim()) {
+    feedback.textContent = `${row}: ${countColLabels[col]} já está preenchido. Nenhum valor foi alterado.`;
+    return;
+  }
+
+  cells[col] = cells[legacyHwKey];
+  delete cells[legacyHwKey];
+  const target = el("countTableBody").querySelector(`[data-count-row="${row}"][data-count-col="${col}"]`);
+  target.value = cells[col];
+  renderLegacyHw();
+  updatePreview(false);
+  saveState();
+  feedback.textContent = `${row}: valor movido para ${countColLabels[col]}.`;
+  target.focus();
+}
+
 function renderAllDynamic() {
   renderDynamicLists();
   renderCountTable();
+  el("legacyHwFeedback").textContent = "";
+  renderLegacyHw();
   updatePreview(false);
 }
 
@@ -683,6 +733,11 @@ form.addEventListener("change", event => {
 });
 
 form.addEventListener("click", event => {
+  const reassignBtn = event.target.closest("[data-reassign-hw]");
+  if (reassignBtn) {
+    reassignLegacyHw(reassignBtn);
+    return;
+  }
   const removeBtn = event.target.closest(".item-remove");
   if (!removeBtn) return;
   const row = removeBtn.closest("[data-list]");

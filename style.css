@@ -291,7 +291,7 @@ a.btn { display: inline-block; text-align: center; text-decoration: none; }
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 1110px;
+  min-width: 1010px;
 }
 
 .count-table th, .count-table td {
@@ -332,6 +332,17 @@ a.btn { display: inline-block; text-align: center; text-decoration: none; }
 
 .table-hint { margin-bottom: 10px; }
 
+.legacy-hw { margin-top: 14px; scroll-margin-top: 18px; }
+.legacy-hw-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.legacy-hw-value { white-space: pre-wrap; overflow-wrap: anywhere; }
+#legacyHwFeedback:empty { display: none; }
+
 @media (max-width: 1200px) {
   .workspace { grid-template-columns: minmax(0, 1fr); }
   .preview-panel { position: static; }
@@ -342,7 +353,7 @@ a.btn { display: inline-block; text-align: center; text-decoration: none; }
   .app-shell { width: min(100% - 18px, 1540px); padding: 10px 0; }
   .topbar { align-items: stretch; flex-direction: column; padding: 16px; }
   h1 { font-size: 22px; }
-  .grid, .grid.three, .grid.two, .material-row { grid-template-columns: 1fr; }
+  .grid, .grid.three, .grid.two, .material-row, .legacy-hw-entry { grid-template-columns: 1fr; }
   .item-row { grid-template-columns: auto 1fr; }
   .item-row .item-remove { grid-column: 2; }
   .card { padding: 15px; }
